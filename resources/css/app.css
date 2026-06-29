@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+$accent: #2dc4b6;
+$next: #ff8f00;
+
+$theme-colors: (
+  "primary": $accent,
+  "accent": $accent,
+  "next": $next,
+  "secondary": #6c757d,
+  "success": #198754,
+  "info": #0dcaf0,
+  "warning": #ffc107,
+  "danger": #dc3545,
+  "light": #f8f9fa,
+  "dark": #212529
+);
+
+// Then import Bootstrap AFTER your variables to override defaults
+@import "node_modules/bootstrap/scss/bootstrap";
