@@ -6,11 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -65,4 +66,48 @@ class User extends Authenticatable
         return $this->hasMany(Payment::class);
     }
     
+    public function companies()
+    {
+        return $this->belongsToMany(Company::class, 'company_users')
+                    ->withPivot('role', 'invited_at', 'accepted_at', 'is_active')
+                    ->withTimestamps();
+    }
+
+    public function companyUsers()
+    {
+        return $this->hasMany(CompanyUser::class);
+    }
+
+    public function ownedCompanies()
+    {
+        return $this->companies()->wherePivot('role', 'owner');
+    }
+
+    // public function activeCompany(): ?Company
+    // {
+    //     return $this->companies()
+    //                 ->wherePivot('is_active', true)
+    //                 ->latest('company_users.created_at')
+    //                 ->first();
+    // }
+
+    public function roleInCompany(int $companyId): ?string
+    {
+        $cu = $this->companyUsers()
+                ->where('company_id', $companyId)
+                ->first();
+        return $cu?->role;
+    }
+
+    public function activeCompany(): ?Company
+    {
+        try {
+            return $this->companies()
+                        ->wherePivot('is_active', true)
+                        ->latest('company_users.created_at')
+                        ->first();
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
 }
