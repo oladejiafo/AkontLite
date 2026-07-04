@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\OCRController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\PdfController;
+use App\Http\Controllers\Api\ClientController;
 
 // ─────────────────────────────────────────────────────
 // Current user (Sanctum)
@@ -80,6 +81,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // guest migration after signup
     Route::post('/guest/migrate', [ApiGuestSessionController::class, 'migrate']);
+
+
+
+Route::get('/clients',         [ClientController::class, 'index']);
+Route::post('/clients',        [ClientController::class, 'store']);
+Route::get('/clients/{id}',    [ClientController::class, 'show']);
+Route::put('/clients/{id}',    [ClientController::class, 'update']);
+Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
 
     // invoices (auth)
     Route::get('/invoices', [ApiInvoiceController::class, 'index']);

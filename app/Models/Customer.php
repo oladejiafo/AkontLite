@@ -3,19 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
     protected $fillable = [
-        'user_id',
-        'name',
-        'email',
-        'phone',
-        'address',
+        'user_id', 'name', 'email', 'phone', 'address',
     ];
-    
-    protected $casts = [];
-    
 
     public function user()
     {
@@ -26,5 +20,4 @@ class Customer extends Model
     {
         return $this->hasMany(Invoice::class);
     }
-
 }

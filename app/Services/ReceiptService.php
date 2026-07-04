@@ -77,7 +77,7 @@ class ReceiptService
         // store the original image permanently
         $imagePath = $image->store(
             'receipts/' . now()->format('Y/m'),
-            's3'
+            'local'
         );
 
         // merge extracted with any manual overrides from user
