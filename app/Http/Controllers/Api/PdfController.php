@@ -8,6 +8,7 @@ use App\Models\Receipt;
 use App\Services\PdfService;
 use App\Services\GuestSessionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PdfController extends Controller
 {
@@ -17,38 +18,64 @@ class PdfController extends Controller
     ) {}
 
     // GET /api/invoices/{id}/pdf
-    public function invoicePdf(Request $request, int $id)
-    {
-        $invoice = $this->resolveInvoice($request, $id);
-
-        if (!$invoice) {
-            return response()->json(['message' => 'Not found'], 404);
+public function invoicePdf(Request $request, int $id)
+{
+    // try token auth manually
+    $token = $request->bearerToken();
+    if ($token) {
+        $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+        if ($accessToken) {
+            $user = $accessToken->tokenable;
+            Auth::setUser($user);
         }
+    }
 
+    $invoice = $this->resolveInvoice($request, $id);
+
+    if (!$invoice) {
+        return response()->json(['message' => 'Not found'], 404);
+    }
+
+    try {
         $pdf = $this->pdfService->generateInvoicePdf($invoice);
-
-        return response($pdf, 200, [
-            'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => "inline; filename=\"{$invoice->invoice_number}.pdf\"",
-        ]);
+    } catch (\Exception $e) {
+        return response()->json(['message' => 'PDF generation failed: ' . $e->getMessage()], 500);
     }
 
-    // GET /api/receipts/{id}/pdf
-    public function receiptPdf(Request $request, int $id)
-    {
-        $receipt = $this->resolveReceipt($request, $id);
+    return response($pdf, 200, [
+        'Content-Type'        => 'application/pdf',
+        'Content-Disposition' => "inline; filename=\"{$invoice->invoice_number}.pdf\"",
+    ]);
+}
 
-        if (!$receipt) {
-            return response()->json(['message' => 'Not found'], 404);
+public function receiptPdf(Request $request, int $id)
+{
+    $token = $request->bearerToken();
+    if ($token) {
+        $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+        if ($accessToken) {
+            $user = $accessToken->tokenable;
+            Auth::setUser($user);
         }
-
-        $pdf = $this->pdfService->generateReceiptPdf($receipt);
-
-        return response($pdf, 200, [
-            'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => "inline; filename=\"receipt-{$receipt->id}.pdf\"",
-        ]);
     }
+
+    $receipt = $this->resolveReceipt($request, $id);
+
+    if (!$receipt) {
+        return response()->json(['message' => 'Not found'], 404);
+    }
+
+    try {
+        $pdf = $this->pdfService->generateReceiptPdf($receipt);
+    } catch (\Exception $e) {
+        return response()->json(['message' => 'PDF generation failed: ' . $e->getMessage()], 500);
+    }
+
+    return response($pdf, 200, [
+        'Content-Type'        => 'application/pdf',
+        'Content-Disposition' => "inline; filename=\"receipt-{$receipt->id}.pdf\"",
+    ]);
+}
 
     // ─── Helpers ─────────────────────────────
 

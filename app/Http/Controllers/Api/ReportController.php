@@ -43,7 +43,7 @@ class ReportController extends Controller
     }
 
     // GET /api/reports/vat
-    public function vat(Request $request)
+    public function vatxx(Request $request)
     {
         $request->validate([
             'from' => 'required|date',
@@ -85,149 +85,236 @@ class ReportController extends Controller
             'currency'    => $company?->currency ?? 'USD',
         ]);
     }
+    
+    public function vat(Request $request)
+    {
+        $request->validate([
+            'from' => 'required|date',
+            'to'   => 'required|date|after_or_equal:from',
+        ]);
+    
+        $user    = $request->user();
+        $company = $user->activeCompany();
+    
+        // ==========================================
+        // OUTPUT VAT - Calculate from invoice items
+        // ==========================================
+        $invoiceQuery = Invoice::whereBetween('created_at', [
+            $request->from, $request->to
+        ])->where('status', 'paid');
+    
+        if ($company) {
+            $invoiceQuery->where('company_id', $company->id);
+        } else {
+            $invoiceQuery->where('user_id', $user->id);
+        }
+    
+        // Get all invoices and sum their item totals
+        $invoices = $invoiceQuery->with('items')->get();
+        $outputVat = 0;
+        foreach ($invoices as $invoice) {
+            foreach ($invoice->items as $item) {
+                // If you have a tax rate on invoice_items, calculate tax
+                // If not, assume total includes tax or calculate from invoice total
+                $outputVat += $item->total; // Or calculate tax from total
+            }
+        }
+    
+        // ==========================================
+        // INPUT VAT - From receipts table (has tax_amount)
+        // ==========================================
+        $receiptQuery = Receipt::whereBetween('receipt_date', [
+            $request->from, $request->to
+        ])->where('type', 'incoming')
+          ->where('status', 'confirmed');
+    
+        if ($company) {
+            $receiptQuery->where('company_id', $company->id);
+        } else {
+            $receiptQuery->where('user_id', $user->id);
+        }
+    
+        $inputVat = $receiptQuery->sum('tax_amount');
+    
+        $vatPayable = $outputVat - $inputVat;
+    
+        return response()->json([
+            'period' => [
+                'from' => $request->from,
+                'to'   => $request->to,
+            ],
+            'output_vat'  => round($outputVat, 2),
+            'input_vat'   => round($inputVat, 2),
+            'vat_payable' => round($vatPayable, 2),
+            'currency'    => $company?->currency ?? 'USD',
+        ]);
+    }
 
     // GET /api/reports/export
-public function export(Request $request)
-{
-    $request->validate([
-        'type'   => 'required|in:invoices,receipts,vat',
-        'format' => 'required|in:csv,pdf',
-        'from'   => 'required|date',
-        'to'     => 'required|date|after_or_equal:from',
-    ]);
+    public function export(Request $request)
+    {
+        $request->validate([
+            'type'   => 'required|in:invoices,receipts,vat',
+            'format' => 'required|in:csv,pdf',
+            'from'   => 'required|date',
+            'to'     => 'required|date|after_or_equal:from',
+        ]);
 
-    $user    = $request->user();
-    $company = $user->activeCompany();
-    $from    = $request->from;
-    $to      = $request->to;
-    $type    = $request->type;
-    $format  = $request->format;
+        $user    = $request->user();
+        $company = $user->activeCompany();
+        $from    = $request->from;
+        $to      = $request->to;
+        $type    = $request->type;
+        $format  = $request->format;
 
-    if ($type === 'invoices') {
-        $data = Invoice::whereBetween('created_at', [$from, $to])
-            ->when($company, fn($q) => $q->where('company_id', $company->id),
-                             fn($q) => $q->where('user_id', $user->id))
-            ->with('items')
-            ->get();
+        if ($type === 'invoices') {
+            $data = Invoice::whereBetween('created_at', [$from, $to])
+                ->when($company, fn($q) => $q->where('company_id', $company->id),
+                                fn($q) => $q->where('user_id', $user->id))
+                ->with('items')
+                ->get();
 
-        if ($format === 'csv') {
-            return $this->invoicesCsv($data);
+            if ($format === 'csv') {
+                return $this->invoicesCsv($data);
+            }
         }
+
+        if ($type === 'receipts') {
+            $data = Receipt::whereBetween('receipt_date', [$from, $to])
+                ->where('type', 'incoming')
+                ->when($company, fn($q) => $q->where('company_id', $company->id),
+                                fn($q) => $q->where('user_id', $user->id))
+                ->get();
+
+            if ($format === 'csv') {
+                return $this->receiptsCsv($data);
+            }
+        }
+
+        if ($type === 'vat') {
+            // Calculate output VAT from invoices
+            $invoiceQuery = Invoice::whereBetween('created_at', [$from, $to])
+                ->where('status', 'paid')
+                ->when($company, fn($q) => $q->where('company_id', $company->id),
+                                fn($q) => $q->where('user_id', $user->id))
+                ->with('items');
+
+            $invoices = $invoiceQuery->get();
+            $outputVat = 0;
+            foreach ($invoices as $invoice) {
+                foreach ($invoice->items as $item) {
+                    $taxRate = 0.05; // Adjust based on your tax rate
+                    $outputVat += $item->total * $taxRate;
+                }
+            }
+
+            // Input VAT from receipts
+            $inputVat = Receipt::whereBetween('receipt_date', [$from, $to])
+                ->where('type', 'incoming')
+                ->when($company, fn($q) => $q->where('company_id', $company->id),
+                                fn($q) => $q->where('user_id', $user->id))
+                ->sum('tax_amount');
+
+            if ($format === 'csv') {
+                return $this->vatCsv($from, $to, $outputVat, $inputVat,
+                                    $company?->currency ?? 'USD');
+            }
+        }
+
+        return response()->json(['message' => 'Export format not supported yet'], 422);
     }
 
-    if ($type === 'receipts') {
-        $data = Receipt::whereBetween('receipt_date', [$from, $to])
-            ->where('type', 'incoming')
-            ->when($company, fn($q) => $q->where('company_id', $company->id),
-                             fn($q) => $q->where('user_id', $user->id))
-            ->get();
+    private function invoicesCsv($invoices): \Illuminate\Http\Response
+    {
+        $rows = ["Invoice Number,Customer,Date,Due Date,Currency,Subtotal,Tax,Discount,Total,Status"];
 
-        if ($format === 'csv') {
-            return $this->receiptsCsv($data);
+        foreach ($invoices as $inv) {
+            // Calculate subtotal from items if needed
+            $subtotal = $inv->items->sum('total') ?? $inv->total_amount;
+            $tax = 0;
+            $discount = 0;
+            
+            // If you have tax and discount columns on the invoice, use them
+            // Otherwise calculate from items
+            foreach ($inv->items as $item) {
+                $taxRate = 0.05; // Adjust based on your tax rate
+                $tax += $item->total * $taxRate;
+            }
+
+            $rows[] = implode(',', [
+                $inv->invoice_number,
+                '"' . ($inv->customer_name ?? $inv->sender_company_name ?? '') . '"',
+                $inv->issue_date ?? $inv->created_at->format('Y-m-d'),
+                $inv->due_date ?? '',
+                $inv->currency,
+                number_format($subtotal, 2),
+                number_format($tax, 2),
+                number_format($discount, 2),
+                number_format($inv->total_amount, 2),
+                $inv->status,
+            ]);
         }
-    }
 
-    if ($type === 'vat') {
-        $outputVat = Invoice::whereBetween('created_at', [$from, $to])
-            ->where('status', 'paid')
-            ->when($company, fn($q) => $q->where('company_id', $company->id),
-                             fn($q) => $q->where('user_id', $user->id))
-            ->sum('tax_amount');
+        $csv = implode("\n", $rows);
 
-        $inputVat = Receipt::whereBetween('receipt_date', [$from, $to])
-            ->where('type', 'incoming')
-            ->when($company, fn($q) => $q->where('company_id', $company->id),
-                             fn($q) => $q->where('user_id', $user->id))
-            ->sum('tax_amount');
-
-        if ($format === 'csv') {
-            return $this->vatCsv($from, $to, $outputVat, $inputVat,
-                                 $company?->currency ?? 'USD');
-        }
-    }
-
-    return response()->json(['message' => 'Export format not supported yet'], 422);
-}
-
-private function invoicesCsv($invoices): \Illuminate\Http\Response
-{
-    $rows   = ["Invoice Number,Client,Date,Due Date,Currency,Subtotal,Tax,Discount,Total,Status"];
-
-    foreach ($invoices as $inv) {
-        $rows[] = implode(',', [
-            $inv->invoice_number,
-            '"' . ($inv->client_name ?? '') . '"',
-            $inv->created_at->format('Y-m-d'),
-            $inv->due_date ?? '',
-            $inv->currency,
-            $inv->subtotal,
-            $inv->tax_amount,
-            $inv->discount_amount,
-            $inv->total_amount,
-            $inv->status,
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="invoices.csv"',
         ]);
     }
 
-    $csv = implode("\n", $rows);
+    private function receiptsCsv($receipts): \Illuminate\Http\Response
+    {
+        $rows = ["Receipt Number,Vendor,Date,Currency,Subtotal,Tax,Total,Category,Status"];
 
-    return response($csv, 200, [
-        'Content-Type'        => 'text/csv',
-        'Content-Disposition' => 'attachment; filename="invoices.csv"',
-    ]);
-}
+        foreach ($receipts as $r) {
+            $rows[] = implode(',', [
+                $r->receipt_number ?? '',
+                '"' . ($r->vendor_name ?? $r->customer_name ?? '') . '"',
+                $r->receipt_date->format('Y-m-d'),
+                $r->currency,
+                number_format($r->subtotal ?? 0, 2),
+                number_format($r->tax_amount ?? 0, 2),
+                number_format($r->total_amount ?? 0, 2),
+                $r->category ?? '',
+                $r->status,
+            ]);
+        }
 
-private function receiptsCsv($receipts): \Illuminate\Http\Response
-{
-    $rows = ["Receipt Number,Vendor,Date,Currency,Subtotal,Tax,Total,Category,Status"];
+        $csv = implode("\n", $rows);
 
-    foreach ($receipts as $r) {
-        $rows[] = implode(',', [
-            $r->receipt_number ?? '',
-            '"' . ($r->vendor_name ?? '') . '"',
-            $r->receipt_date->format('Y-m-d'),
-            $r->currency,
-            $r->subtotal,
-            $r->tax_amount,
-            $r->total_amount,
-            $r->category ?? '',
-            $r->status,
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="expenses.csv"',
         ]);
     }
 
-    $csv = implode("\n", $rows);
+    private function vatCsv(
+        string $from,
+        string $to,
+        float $outputVat,
+        float $inputVat,
+        string $currency
+    ): \Illuminate\Http\Response {
+        $vatPayable = $outputVat - $inputVat;
 
-    return response($csv, 200, [
-        'Content-Type'        => 'text/csv',
-        'Content-Disposition' => 'attachment; filename="expenses.csv"',
-    ]);
-}
+        $rows = [
+            "Period From,Period To,Output VAT,Input VAT,VAT Payable,Currency",
+            implode(',', [
+                $from, $to,
+                number_format($outputVat, 2),
+                number_format($inputVat, 2),
+                number_format($vatPayable, 2),
+                $currency,
+            ]),
+        ];
 
-private function vatCsv(
-    string $from,
-    string $to,
-    float $outputVat,
-    float $inputVat,
-    string $currency
-): \Illuminate\Http\Response {
-    $vatPayable = $outputVat - $inputVat;
+        $csv = implode("\n", $rows);
 
-    $rows = [
-        "Period From,Period To,Output VAT,Input VAT,VAT Payable,Currency",
-        implode(',', [
-            $from, $to,
-            number_format($outputVat, 2),
-            number_format($inputVat, 2),
-            number_format($vatPayable, 2),
-            $currency,
-        ]),
-    ];
-
-    $csv = implode("\n", $rows);
-
-    return response($csv, 200, [
-        'Content-Type'        => 'text/csv',
-        'Content-Disposition' => 'attachment; filename="vat-report.csv"',
-    ]);
-}
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="vat-report.csv"',
+        ]);
+    }
 
 }

@@ -82,24 +82,34 @@ Route::middleware('auth:sanctum')->group(function () {
     // guest migration after signup
     Route::post('/guest/migrate', [ApiGuestSessionController::class, 'migrate']);
 
+    Route::get('/clients',         [ClientController::class, 'index']);
+    Route::post('/clients',        [ClientController::class, 'store']);
+    Route::get('/clients/{id}',    [ClientController::class, 'show']);
+    Route::put('/clients/{id}',    [ClientController::class, 'update']);
+    Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
 
+    // // invoices (auth)
+    // Route::get('/invoices', [ApiInvoiceController::class, 'index']);
+    // Route::put('/invoices/{id}', [ApiInvoiceController::class, 'update']);
+    // Route::delete('/invoices/{id}', [ApiInvoiceController::class, 'destroy']);
+    // Route::get('/invoices/{id}', [ApiInvoiceController::class, 'show']);
 
-Route::get('/clients',         [ClientController::class, 'index']);
-Route::post('/clients',        [ClientController::class, 'store']);
-Route::get('/clients/{id}',    [ClientController::class, 'show']);
-Route::put('/clients/{id}',    [ClientController::class, 'update']);
-Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
+    // // legacy invoice actions (kept until migrated)
+    // Route::post('/invoices/{id}/send', [ApiInvoiceController::class, 'send']);
+    // Route::post('invoices/{id}/send-email', [GuestSessionController::class, 'sendByEmail']);
+    // Route::post('invoices/{id}/reminder', [GuestSessionController::class, 'sendReminder']);
+    // Route::post('invoices/{id}/mark-paid', [GuestSessionController::class, 'markAsPaid']);
+    // Route::get('invoices/{id}/download', [GuestSessionController::class, 'downloadPdf']);
 
     // invoices (auth)
-    Route::get('/invoices', [ApiInvoiceController::class, 'index']);
-    Route::put('/invoices/{id}', [ApiInvoiceController::class, 'update']);
-    Route::delete('/invoices/{id}', [ApiInvoiceController::class, 'destroy']);
-
-    // legacy invoice actions (kept until migrated)
-    Route::post('invoices/{id}/send-email', [GuestSessionController::class, 'sendByEmail']);
-    Route::post('invoices/{id}/reminder', [GuestSessionController::class, 'sendReminder']);
-    Route::post('invoices/{id}/mark-paid', [GuestSessionController::class, 'markAsPaid']);
-    Route::get('invoices/{id}/download', [GuestSessionController::class, 'downloadPdf']);
+Route::get('/invoices', [ApiInvoiceController::class, 'index']);
+Route::get('/invoices/{id}', [ApiInvoiceController::class, 'show']);
+Route::put('/invoices/{id}', [ApiInvoiceController::class, 'update']);
+Route::delete('/invoices/{id}', [ApiInvoiceController::class, 'destroy']);
+Route::post('/invoices/{id}/send', [ApiInvoiceController::class, 'send']);
+Route::post('/invoices/{id}/mark-sent', [ApiInvoiceController::class, 'markSent']);
+Route::post('/invoices/{id}/mark-paid', [ApiInvoiceController::class, 'markPaid']);
+Route::post('/invoices/{id}/cancel', [ApiInvoiceController::class, 'cancel']);
 
     // receipts (auth)
     Route::get('/receipts', [ReceiptController::class, 'index']);
