@@ -74,6 +74,10 @@ Route::get('/invoices/{id}', [ApiInvoiceController::class, 'show']);
 Route::post('/receipts', [ReceiptController::class, 'store']);
 Route::get('/receipts/{id}', [ReceiptController::class, 'show']);
 
+// PDF - manual token resolution, no middleware needed
+Route::get('/invoices/{id}/pdf', [PdfController::class, 'invoicePdf']);
+Route::get('/receipts/{id}/pdf', [PdfController::class, 'receiptPdf']);
+
 // ─────────────────────────────────────────────────────
 // NEW: Authenticated routes
 // ─────────────────────────────────────────────────────
@@ -102,19 +106,24 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('invoices/{id}/download', [GuestSessionController::class, 'downloadPdf']);
 
     // invoices (auth)
-Route::get('/invoices', [ApiInvoiceController::class, 'index']);
-Route::get('/invoices/{id}', [ApiInvoiceController::class, 'show']);
-Route::put('/invoices/{id}', [ApiInvoiceController::class, 'update']);
-Route::delete('/invoices/{id}', [ApiInvoiceController::class, 'destroy']);
-Route::post('/invoices/{id}/send', [ApiInvoiceController::class, 'send']);
-Route::post('/invoices/{id}/mark-sent', [ApiInvoiceController::class, 'markSent']);
-Route::post('/invoices/{id}/mark-paid', [ApiInvoiceController::class, 'markPaid']);
-Route::post('/invoices/{id}/cancel', [ApiInvoiceController::class, 'cancel']);
+    Route::get('/invoices', [ApiInvoiceController::class, 'index']);
+    Route::get('/invoices/{id}', [ApiInvoiceController::class, 'show']);
+    Route::put('/invoices/{id}', [ApiInvoiceController::class, 'update']);
+    Route::delete('/invoices/{id}', [ApiInvoiceController::class, 'destroy']);
+    Route::post('/invoices/{id}/send', [ApiInvoiceController::class, 'send']);
+    Route::post('/invoices/{id}/mark-sent', [ApiInvoiceController::class, 'markSent']);
+    Route::post('/invoices/{id}/mark-paid', [ApiInvoiceController::class, 'markPaid']);
+    Route::post('/invoices/{id}/cancel', [ApiInvoiceController::class, 'cancel']);
+
 
     // receipts (auth)
     Route::get('/receipts', [ReceiptController::class, 'index']);
     Route::put('/receipts/{id}', [ReceiptController::class, 'update']);
     Route::delete('/receipts/{id}', [ReceiptController::class, 'destroy']);
+
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/profile/password', [AuthController::class, 'updatePassword']);
+    Route::delete('/profile', [AuthController::class, 'deleteAccount']);
 
     // company
     Route::prefix('company')->group(function () {

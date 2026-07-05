@@ -54,10 +54,9 @@ class CompanyController extends Controller
         $company = $request->user()->activeCompany();
 
         if (!$company) {
-            return response()->json(['message' => 'No company found'], 404);
+            // create company if none exists
+            return $this->store($request);
         }
-
-        $this->authorizeRole($request, $company, ['owner']);
 
         $company->update($request->only([
             'name', 'email', 'phone', 'address',
@@ -212,35 +211,35 @@ class CompanyController extends Controller
     }
 
     // POST /api/company/logo
-public function uploadLogo(Request $request)
-{
-    $request->validate([
-        'logo' => 'required|image|mimes:jpeg,jpg,png,webp|max:2048',
-    ]);
+    public function uploadLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => 'required|image|mimes:jpeg,jpg,png,webp|max:2048',
+        ]);
 
-    $company = $request->user()->activeCompany();
+        $company = $request->user()->activeCompany();
 
-    if (!$company) {
-        return response()->json(['message' => 'No company found'], 404);
+        if (!$company) {
+            return response()->json(['message' => 'No company found'], 404);
+        }
+
+        $this->authorizeRole($request, $company, ['owner']);
+
+        // delete old logo
+        if ($company->logo_path) {
+            Storage::disk('public')->delete($company->logo_path);
+        }
+
+        $path = $request->file('logo')->store('logos', 'public');
+
+        $company->update(['logo_path' => $path]);
+
+        return response()->json([
+            'success'   => true,
+            'logo_path' => $path,
+            'logo_url'  => Storage::url($path),
+        ]);
     }
-
-    $this->authorizeRole($request, $company, ['owner']);
-
-    // delete old logo
-    if ($company->logo_path) {
-        Storage::disk('public')->delete($company->logo_path);
-    }
-
-    $path = $request->file('logo')->store('logos', 'public');
-
-    $company->update(['logo_path' => $path]);
-
-    return response()->json([
-        'success'   => true,
-        'logo_path' => $path,
-        'logo_url'  => Storage::url($path),
-    ]);
-}
 
     // ─────────────────────────────────────────
     // Helpers

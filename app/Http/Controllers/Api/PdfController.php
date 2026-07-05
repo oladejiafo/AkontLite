@@ -9,6 +9,7 @@ use App\Services\PdfService;
 use App\Services\GuestSessionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class PdfController extends Controller
 {
@@ -18,64 +19,79 @@ class PdfController extends Controller
     ) {}
 
     // GET /api/invoices/{id}/pdf
-public function invoicePdf(Request $request, int $id)
-{
-    // try token auth manually
-    $token = $request->bearerToken();
-    if ($token) {
-        $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
-        if ($accessToken) {
-            $user = $accessToken->tokenable;
-            Auth::setUser($user);
+    public function invoicePdf(Request $request, int $id)
+    {
+        $invoice = $this->resolveByToken($request, $id, 'invoice');
+
+        if (!$invoice) {
+            return response()->json(['message' => 'Not found or unauthorized'], 404);
         }
-    }
 
-    $invoice = $this->resolveInvoice($request, $id);
-
-    if (!$invoice) {
-        return response()->json(['message' => 'Not found'], 404);
-    }
-
-    try {
-        $pdf = $this->pdfService->generateInvoicePdf($invoice);
-    } catch (\Exception $e) {
-        return response()->json(['message' => 'PDF generation failed: ' . $e->getMessage()], 500);
-    }
-
-    return response($pdf, 200, [
-        'Content-Type'        => 'application/pdf',
-        'Content-Disposition' => "inline; filename=\"{$invoice->invoice_number}.pdf\"",
-    ]);
-}
-
-public function receiptPdf(Request $request, int $id)
-{
-    $token = $request->bearerToken();
-    if ($token) {
-        $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
-        if ($accessToken) {
-            $user = $accessToken->tokenable;
-            Auth::setUser($user);
+        try {
+            $pdf = $this->pdfService->generateInvoicePdf($invoice);
+        } catch (\Exception $e) {
+            Log::error('PDF generation failed', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'PDF generation failed'], 500);
         }
+
+        return response($pdf, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => "inline; filename=\"{$invoice->invoice_number}.pdf\"",
+        ]);
     }
 
-    $receipt = $this->resolveReceipt($request, $id);
+    public function receiptPdf(Request $request, int $id)
+    {
+        $receipt = $this->resolveByToken($request, $id, 'receipt');
 
-    if (!$receipt) {
-        return response()->json(['message' => 'Not found'], 404);
+        if (!$receipt) {
+            return response()->json(['message' => 'Not found or unauthorized'], 404);
+        }
+
+        try {
+            $pdf = $this->pdfService->generateReceiptPdf($receipt);
+        } catch (\Exception $e) {
+            Log::error('Receipt PDF failed', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'PDF generation failed'], 500);
+        }
+
+        return response($pdf, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => "inline; filename=\"receipt-{$receipt->id}.pdf\"",
+        ]);
     }
 
-    try {
-        $pdf = $this->pdfService->generateReceiptPdf($receipt);
-    } catch (\Exception $e) {
-        return response()->json(['message' => 'PDF generation failed: ' . $e->getMessage()], 500);
-    }
+    private function resolveByToken(Request $request, int $id, string $type): mixed
+    {
+        // resolve user directly from bearer token
+        $user = null;
+        $bearerToken = $request->bearerToken();
 
-    return response($pdf, 200, [
-        'Content-Type'        => 'application/pdf',
-        'Content-Disposition' => "inline; filename=\"receipt-{$receipt->id}.pdf\"",
-    ]);
-}
+        if ($bearerToken) {
+            $pat = \Laravel\Sanctum\PersonalAccessToken::findToken($bearerToken);
+            if ($pat) {
+                $user = $pat->tokenable;
+            }
+        }
+
+        if ($type === 'invoice') {
+            $model = Invoice::with(['items', 'company'])->find($id);
+            if (!$model) return null;
+            if ($user && $model->user_id === $user->id) return $model;
+
+            $guest = $this->guestService->resolve($request);
+            if ($guest && $model->guest_token === $guest->token) return $model;
+            return null;
+        }
+
+        $model = Receipt::with(['items', 'company'])->find($id);
+        if (!$model) return null;
+        if ($user && $model->user_id === $user->id) return $model;
+
+        $guest = $this->guestService->resolve($request);
+        if ($guest && $model->guest_token === $guest->token) return $model;
+        return null;
+    }
 
     // ─── Helpers ─────────────────────────────
 

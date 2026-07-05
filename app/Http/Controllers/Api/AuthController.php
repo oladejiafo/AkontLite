@@ -101,31 +101,79 @@ class AuthController extends Controller
     }
 
     // GET /api/user
-public function me(Request $request)
-{
-    $user = $request->user();
+    public function me(Request $request)
+    {
+        $user = $request->user();
 
-    try {
-        $company = $user->activeCompany();
-    } catch (\Exception $e) {
-        $company = null;
+        try {
+            $company = $user->activeCompany();
+        } catch (\Exception $e) {
+            $company = null;
+        }
+
+        return response()->json([
+            'id'         => $user->id,
+            'name'       => $user->name,
+            'email'      => $user->email,
+            'company_id' => $company?->id,
+            'created_at' => $user->created_at,
+            'company'    => $company ? [
+                'id'               => $company->id,
+                'name'             => $company->name,
+                'currency'         => $company->currency,
+                'country_standard' => $company->country_standard,
+                'vat_number'       => $company->vat_number,
+                'tax_number'       => $company->tax_number,
+                'logo_path'        => $company->logo_path,
+            ] : null,
+        ]);
     }
 
-    return response()->json([
-        'id'         => $user->id,
-        'name'       => $user->name,
-        'email'      => $user->email,
-        'company_id' => $company?->id,
-        'created_at' => $user->created_at,
-        'company'    => $company ? [
-            'id'               => $company->id,
-            'name'             => $company->name,
-            'currency'         => $company->currency,
-            'country_standard' => $company->country_standard,
-            'vat_number'       => $company->vat_number,
-            'tax_number'       => $company->tax_number,
-            'logo_path'        => $company->logo_path,
-        ] : null,
-    ]);
-}
+    // PUT /api/profile
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'name'  => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $request->user()->id,
+        ]);
+
+        $user = $request->user();
+        $user->update($request->only(['name', 'email']));
+
+        return response()->json([
+            'id'         => $user->id,
+            'name'       => $user->name,
+            'email'      => $user->email,
+            'created_at' => $user->created_at,
+        ]);
+    }
+
+    // PUT /api/profile/password  
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password'      => 'required|string',
+            'new_password'          => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['message' => 'Current password is incorrect'], 422);
+        }
+
+        $user->update(['password' => Hash::make($request->new_password)]);
+
+        return response()->json(['success' => true]);
+    }
+
+    // DELETE /api/profile
+    public function deleteAccount(Request $request)
+    {
+        $user = $request->user();
+        $user->tokens()->delete();
+        $user->delete();
+        return response()->json(['success' => true]);
+    }
+
 }
