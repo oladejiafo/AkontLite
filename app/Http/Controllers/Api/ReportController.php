@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Receipt;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 class ReportController extends Controller
@@ -151,7 +152,7 @@ class ReportController extends Controller
     }
 
     // GET /api/reports/export
-    public function export(Request $request)
+    public function exportXX(Request $request)
     {
         $request->validate([
             'type'   => 'required|in:invoices,receipts,vat',
@@ -222,6 +223,116 @@ class ReportController extends Controller
         }
 
         return response()->json(['message' => 'Export format not supported yet'], 422);
+    }
+
+    public function export(Request $request)
+    {
+        $request->validate([
+            'type'   => 'required|in:invoices,receipts,vat',
+            'format' => 'required|in:csv,pdf',
+            'from'   => 'required|date',
+            'to'     => 'required|date|after_or_equal:from',
+        ]);
+
+        $user    = $request->user();
+        $company = $user->activeCompany();
+        $from    = $request->from;
+        $to      = $request->to;
+        $type    = $request->type;
+        $format  = $request->format;
+
+        if ($type === 'invoices') {
+            $data = Invoice::whereBetween('created_at', ["{$from} 00:00:00", "{$to} 23:59:59"])
+                ->where('user_id', $user->id)
+                ->with('items')
+                ->get();
+
+            return $format === 'csv'
+                ? $this->invoicesCsv($data)
+                : $this->invoicesPdf($data, $from, $to);
+        }
+
+        if ($type === 'receipts') {
+            $data = Receipt::whereBetween('receipt_date', [$from, $to])
+                ->where('type', 'incoming')
+                ->where('user_id', $user->id)
+                ->get();
+
+            return $format === 'csv'
+                ? $this->receiptsCsv($data)
+                : $this->receiptsPdf($data, $from, $to);
+        }
+
+        if ($type === 'vat') {
+            $invoiceQuery = Invoice::whereBetween('created_at', ["{$from} 00:00:00", "{$to} 23:59:59"])
+                ->where('status', 'paid')
+                ->where('user_id', $user->id)
+                ->with('items');
+
+            $invoices  = $invoiceQuery->get();
+            $outputVat = 0;
+            foreach ($invoices as $invoice) {
+                foreach ($invoice->items as $item) {
+                    $outputVat += $item->total * 0.05;
+                }
+            }
+
+            $inputVat = Receipt::whereBetween('receipt_date', [$from, $to])
+                ->where('type', 'incoming')
+                ->where('user_id', $user->id)
+                ->sum('tax_amount');
+
+            return $format === 'csv'
+                ? $this->vatCsv($from, $to, $outputVat, $inputVat, 'USD')
+                : $this->vatPdf($from, $to, $outputVat, $inputVat, 'USD');
+        }
+
+        return response()->json(['message' => 'Export type not supported'], 422);
+    }
+
+    private function invoicesPdf($invoices, $from, $to)
+    {
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.reports.invoices', [
+            'invoices' => $invoices,
+            'from'     => $from,
+            'to'       => $to,
+        ])->setPaper('a4', 'portrait');
+
+        return response($pdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="invoices-report.pdf"',
+        ]);
+    }
+
+    private function receiptsPdf($receipts, $from, $to)
+    {
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.reports.receipts', [
+            'receipts' => $receipts,
+            'from'     => $from,
+            'to'       => $to,
+        ])->setPaper('a4', 'portrait');
+
+        return response($pdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="expenses-report.pdf"',
+        ]);
+    }
+
+    private function vatPdf($from, $to, $outputVat, $inputVat, $currency)
+    {
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.reports.vat', [
+            'from'       => $from,
+            'to'         => $to,
+            'outputVat'  => $outputVat,
+            'inputVat'   => $inputVat,
+            'vatPayable' => $outputVat - $inputVat,
+            'currency'   => $currency,
+        ])->setPaper('a4', 'portrait');
+
+        return response($pdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="vat-report.pdf"',
+        ]);
     }
 
     private function invoicesCsv($invoices): \Illuminate\Http\Response

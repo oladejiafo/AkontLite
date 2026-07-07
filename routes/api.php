@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\PdfController;
 use App\Http\Controllers\Api\ClientController;
 
+use App\Http\Controllers\Api\PaymentController as ApiPaymentController;
+
 // ─────────────────────────────────────────────────────
 // Current user (Sanctum)
 // ─────────────────────────────────────────────────────
@@ -74,6 +76,9 @@ Route::get('/invoices/{id}', [ApiInvoiceController::class, 'show']);
 Route::post('/receipts', [ReceiptController::class, 'store']);
 Route::get('/receipts/{id}', [ReceiptController::class, 'show']);
 
+// outside auth, gateways call this directly, no user session exists
+Route::post('/webhooks/{provider}', [PaymentController::class, 'handleWebhook']);
+
 // PDF - manual token resolution, no middleware needed
 Route::get('/invoices/{id}/pdf', [PdfController::class, 'invoicePdf']);
 Route::get('/receipts/{id}/pdf', [PdfController::class, 'receiptPdf']);
@@ -119,6 +124,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // receipts (auth)
     Route::get('/receipts', [ReceiptController::class, 'index']);
     Route::put('/receipts/{id}', [ReceiptController::class, 'update']);
+    Route::get('/receipts/{id}', [ReceiptController::class, 'show']);
     Route::delete('/receipts/{id}', [ReceiptController::class, 'destroy']);
 
     Route::put('/profile', [AuthController::class, 'updateProfile']);
@@ -144,6 +150,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/vat', [ReportController::class, 'vat']);
         Route::get('/export', [ReportController::class, 'export']);
     });
+
+    Route::get('/payments', [ApiPaymentController::class, 'index']);
+    Route::post('/payments', [ApiPaymentController::class, 'store']);
+    Route::get('/payments/{id}', [ApiPaymentController::class, 'show']);
+    // routes/api.php, inside auth:sanctum group
+    Route::post('/invoices/{id}/checkout', [PaymentController::class, 'generateCheckout']);
 
     // PDF generation
     Route::get('/invoices/{id}/pdf', [PdfController::class, 'invoicePdf']);

@@ -10,7 +10,7 @@
 
   /* Header */
   .header { display: flex; justify-content: space-between; margin-bottom: 32px; }
-  .company-name { font-size: 22px; font-weight: bold; color: #2563EB; }
+  .company-name { font-size: 22px; font-weight: bold; color: #2dc4b6; }
   .company-details { font-size: 11px; color: #666; margin-top: 4px; line-height: 1.6; }
   .invoice-meta { text-align: right; }
   .invoice-title { font-size: 28px; font-weight: bold; color: #111; letter-spacing: 2px; }
@@ -27,7 +27,7 @@
   /* Items table */
   table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
   thead th {
-    background: #2563EB; color: #fff;
+    background: #2dc4b6; color: #fff;
     padding: 10px 12px; font-size: 11px;
     text-transform: uppercase; letter-spacing: 0.5px;
     text-align: left;
@@ -44,13 +44,13 @@
     padding: 6px 0; font-size: 12px; border-bottom: 1px solid #f0f0f0;
   }
   .totals-row.grand {
-    padding-top: 10px; border-bottom: none; border-top: 2px solid #2563EB;
+    padding-top: 10px; border-bottom: none; border-top: 2px solid #2dc4b6;
   }
   .totals-row.grand .label { font-size: 15px; font-weight: bold; color: #111; }
-  .totals-row.grand .value { font-size: 16px; font-weight: bold; color: #2563EB; }
+  .totals-row.grand .value { font-size: 16px; font-weight: bold; color: #2dc4b6; }
 
   /* Notes */
-  .notes { background: #f8fafc; border-left: 3px solid #2563EB;
+  .notes { background: #f8fafc; border-left: 3px solid #2dc4b6;
            padding: 12px; border-radius: 4px; margin-bottom: 24px; }
   .notes-label { font-size: 10px; font-weight: bold; color: #888;
                  text-transform: uppercase; margin-bottom: 4px; }
@@ -69,6 +69,7 @@
 </style>
 </head>
 <body>
+
 <div class="page">
 
   <!-- Header -->

@@ -42,4 +42,16 @@ return [
     'openai' => [
         'key' => env('OPENAI_API_KEY'),
     ],
+    'stripe' => [
+        'secret' => env('STRIPE_SECRET_KEY'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+    'paystack' => [
+        'secret' => env('PAYSTACK_SECRET_KEY'),
+    ],
+    'flutterwave' => [
+        'secret' => env('FLUTTERWAVE_SECRET_KEY'),
+        'webhook_hash' => env('FLUTTERWAVE_WEBHOOK_HASH'),
+    ],
+    
 ];

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ceb156a45231570a3f8a1e6757c10fe1",
+    "content-hash": "852263af1687ac74ee2c75fb714133c7",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -62,26 +62,26 @@
         },
         {
             "name": "barryvdh/laravel-dompdf",
-            "version": "v3.1.1",
+            "version": "v3.1.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/barryvdh/laravel-dompdf.git",
-                "reference": "8e71b99fc53bb8eb77f316c3c452dd74ab7cb25d"
+                "reference": "ee3b72b19ccdf57d0243116ecb2b90261344dedc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/barryvdh/laravel-dompdf/zipball/8e71b99fc53bb8eb77f316c3c452dd74ab7cb25d",
-                "reference": "8e71b99fc53bb8eb77f316c3c452dd74ab7cb25d",
+                "url": "https://api.github.com/repos/barryvdh/laravel-dompdf/zipball/ee3b72b19ccdf57d0243116ecb2b90261344dedc",
+                "reference": "ee3b72b19ccdf57d0243116ecb2b90261344dedc",
                 "shasum": ""
             },
             "require": {
                 "dompdf/dompdf": "^3.0",
-                "illuminate/support": "^9|^10|^11|^12",
+                "illuminate/support": "^9|^10|^11|^12|^13.0",
                 "php": "^8.1"
             },
             "require-dev": {
                 "larastan/larastan": "^2.7|^3.0",
-                "orchestra/testbench": "^7|^8|^9|^10",
+                "orchestra/testbench": "^7|^8|^9.16|^10|^11.0",
                 "phpro/grumphp": "^2.5",
                 "squizlabs/php_codesniffer": "^3.5"
             },
@@ -123,7 +123,7 @@
             ],
             "support": {
                 "issues": "https://github.com/barryvdh/laravel-dompdf/issues",
-                "source": "https://github.com/barryvdh/laravel-dompdf/tree/v3.1.1"
+                "source": "https://github.com/barryvdh/laravel-dompdf/tree/v3.1.2"
             },
             "funding": [
                 {
@@ -135,7 +135,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-02-13T15:07:54+00:00"
+            "time": "2026-02-21T08:51:10+00:00"
         },
         {
             "name": "brick/math",
@@ -4420,6 +4420,68 @@
                 "source": "https://github.com/MyIntervals/PHP-CSS-Parser/tree/v8.8.0"
             },
             "time": "2025-03-23T17:59:05+00:00"
+        },
+        {
+            "name": "stripe/stripe-php",
+            "version": "v20.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/stripe/stripe-php.git",
+                "reference": "266f0b05890172184cca66a0688abaf1a96b08d8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/stripe/stripe-php/zipball/266f0b05890172184cca66a0688abaf1a96b08d8",
+                "reference": "266f0b05890172184cca66a0688abaf1a96b08d8",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "php": ">=7.2.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "3.94.0",
+                "phpstan/phpstan": "^1.2",
+                "phpunit/phpunit": "^8.0 || ^9.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "2.0-dev"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "lib/version_check.php"
+                ],
+                "psr-4": {
+                    "Stripe\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Stripe and contributors",
+                    "homepage": "https://github.com/stripe/stripe-php/contributors"
+                }
+            ],
+            "description": "Stripe PHP Library",
+            "homepage": "https://stripe.com/",
+            "keywords": [
+                "api",
+                "payment processing",
+                "stripe"
+            ],
+            "support": {
+                "issues": "https://github.com/stripe/stripe-php/issues",
+                "source": "https://github.com/stripe/stripe-php/tree/v20.3.0"
+            },
+            "time": "2026-06-24T22:45:28+00:00"
         },
         {
             "name": "symfony/clock",

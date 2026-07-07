@@ -133,19 +133,34 @@ class ReceiptController extends Controller
 
     private function resolveReceipt(Request $request, int $id): ?Receipt
     {
-        $user    = $request->user();
-        $guest   = $this->guestService->resolve($request);
+        $user = $request->user();
+        $guest = $this->guestService->resolve($request);
         $receipt = Receipt::find($id);
 
         if (!$receipt) return null;
 
+        // If user is logged in
         if ($user) {
+            // Allow if receipt belongs to user
+            if ($receipt->user_id === $user->id) {
+                return $receipt;
+            }
+            
+            // Allow if receipt belongs to user's company
             $company = $user->activeCompany();
-            $owned   = $receipt->user_id === $user->id
-                    || ($company && $receipt->company_id === $company->id);
-            return $owned ? $receipt : null;
+            if ($company && $receipt->company_id === $company->id) {
+                return $receipt;
+            }
+            
+            // ALLOW if receipt has no user_id (guest receipt) - THIS IS THE KEY FIX
+            if ($receipt->user_id === null) {
+                return $receipt;
+            }
+            
+            return null;
         }
 
+        // Guest mode
         if ($guest) {
             return $receipt->guest_token === $guest->token ? $receipt : null;
         }

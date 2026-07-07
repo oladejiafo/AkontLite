@@ -7,7 +7,7 @@
   body { font-family: DejaVu Sans, sans-serif; font-size: 13px; color: #222; }
   .page { padding: 40px; }
   .header { display: flex; justify-content: space-between; margin-bottom: 32px; }
-  .company-name { font-size: 22px; font-weight: bold; color: #2563EB; }
+  .company-name { font-size: 22px; font-weight: bold; color: #2dc4b6; }
   .company-details { font-size: 11px; color: #666; margin-top: 4px; line-height: 1.6; }
   .receipt-meta { text-align: right; }
   .receipt-title { font-size: 28px; font-weight: bold; color: #111; letter-spacing: 2px; }
@@ -15,7 +15,7 @@
 
   table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
   thead th {
-    background: #2563EB; color: #fff;
+    background: #2dc4b6; color: #fff;
     padding: 10px 12px; font-size: 11px;
     text-transform: uppercase; text-align: left;
   }
@@ -29,10 +29,10 @@
     padding: 6px 0; font-size: 12px; border-bottom: 1px solid #f0f0f0;
   }
   .totals-row.grand {
-    padding-top: 10px; border-bottom: none; border-top: 2px solid #2563EB;
+    padding-top: 10px; border-bottom: none; border-top: 2px solid #2dc4b6;
   }
   .totals-row.grand .label { font-size: 15px; font-weight: bold; }
-  .totals-row.grand .value { font-size: 16px; font-weight: bold; color: #2563EB; }
+  .totals-row.grand .value { font-size: 16px; font-weight: bold; color: #2dc4b6; }
 
   .qr-section { display: flex; align-items: center; margin: 24px 0; }
   .qr-box { margin-right: 14px; }
@@ -125,7 +125,7 @@
   @include('pdf.partials.qr', ['qrCode' => $qrCode])
 
   @if($receipt->notes)
-  <div style="background:#f8fafc;border-left:3px solid #2563EB;padding:12px;margin-top:16px">
+  <div style="background:#f8fafc;border-left:3px solid #2dc4b6;padding:12px;margin-top:16px">
     <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:4px">Notes</div>
     <div style="font-size:11px;color:#555">{{ $receipt->notes }}</div>
   </div>

@@ -108,6 +108,7 @@ class InvoiceController extends Controller
             'discount_amount' => $discount,
             'total_amount'    => $total,
             'due_date'        => $request->due_date,
+            'issue_date' => now()->toDateString(),
             'notes'           => $request->notes,
             'status'          => 'draft',
         ]);
