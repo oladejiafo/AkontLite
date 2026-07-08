@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\PdfController;
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\PlanController;
 
 use App\Http\Controllers\Api\PaymentController as ApiPaymentController;
 
@@ -37,7 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user',    [AuthController::class, 'me']);
 });
-
+Route::post('/auth/google', [\App\Http\Controllers\Api\GoogleAuthController::class, 'login']);
 // ─────────────────────────────────────────────────────
 // LEGACY routes (kept to avoid breaking existing mobile
 // until fully migrated to new Api\ controllers)
@@ -78,6 +80,7 @@ Route::get('/receipts/{id}', [ReceiptController::class, 'show']);
 
 // outside auth, gateways call this directly, no user session exists
 Route::post('/webhooks/{provider}', [PaymentController::class, 'handleWebhook']);
+Route::get('/plans', [PlanController::class, 'index']);
 
 // PDF - manual token resolution, no middleware needed
 Route::get('/invoices/{id}/pdf', [PdfController::class, 'invoicePdf']);
@@ -87,6 +90,10 @@ Route::get('/receipts/{id}/pdf', [PdfController::class, 'receiptPdf']);
 // NEW: Authenticated routes
 // ─────────────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
+    // Route::get('/plans', [PlanController::class, 'index']);
+    Route::get('/subscription/current', [SubscriptionController::class, 'current']);
+    Route::post('/subscription/upgrade', [SubscriptionController::class, 'upgrade']);
+    Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel']);
 
     // guest migration after signup
     Route::post('/guest/migrate', [ApiGuestSessionController::class, 'migrate']);
@@ -126,6 +133,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/receipts/{id}', [ReceiptController::class, 'update']);
     Route::get('/receipts/{id}', [ReceiptController::class, 'show']);
     Route::delete('/receipts/{id}', [ReceiptController::class, 'destroy']);
+    Route::post('/receipts/{id}/email', [ReceiptController::class, 'sendEmail']);
 
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::put('/profile/password', [AuthController::class, 'updatePassword']);

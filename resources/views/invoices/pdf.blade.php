@@ -53,5 +53,10 @@
         </table>
         <p><strong>Total: {{ number_format($invoice->total_amount, 2) }} {{ $invoice->currency }}</strong></p>
     </div>
+        @if($showWatermark)
+    <div style="text-align: center; margin-top: 20px; font-size: 10px; color: #999;">
+        Created with AkɔntLite &mdash; akontlite.akontforge.com
+    </div>
+    @endif
 </body>
 </html>

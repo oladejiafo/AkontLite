@@ -167,4 +167,23 @@ class ReceiptController extends Controller
 
         return null;
     }
+
+    public function sendEmail(Request $request, int $id)
+    {
+        $receipt = $this->resolveReceipt($request, $id);
+
+        if (!$receipt) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        $email = $request->input('email');
+
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json(['message' => 'Valid email required'], 422);
+        }
+
+        \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\ReceiptSentMail($receipt));
+
+        return response()->json(['success' => true, 'message' => 'Receipt sent']);
+    }
 }

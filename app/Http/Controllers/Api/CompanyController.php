@@ -211,7 +211,7 @@ class CompanyController extends Controller
     }
 
     // POST /api/company/logo
-    public function uploadLogo(Request $request)
+    public function uploadLogox(Request $request)
     {
         $request->validate([
             'logo' => 'required|image|mimes:jpeg,jpg,png,webp|max:2048',
@@ -226,6 +226,41 @@ class CompanyController extends Controller
         $this->authorizeRole($request, $company, ['owner']);
 
         // delete old logo
+        if ($company->logo_path) {
+            Storage::disk('public')->delete($company->logo_path);
+        }
+
+        $path = $request->file('logo')->store('logos', 'public');
+
+        $company->update(['logo_path' => $path]);
+
+        return response()->json([
+            'success'   => true,
+            'logo_path' => $path,
+            'logo_url'  => Storage::url($path),
+        ]);
+    }
+
+    public function uploadLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => 'required|image|mimes:jpeg,jpg,png,webp|max:2048',
+        ]);
+
+        $company = $request->user()->activeCompany();
+
+        if (!$company) {
+            return response()->json(['message' => 'No company found'], 404);
+        }
+
+        if (!app(\App\Services\PlanGateService::class)->canUploadLogo($request->user())) {
+            return response()->json([
+                'message' => 'Logo upload is a paid feature. Upgrade to add your branding.',
+            ], 403);
+        }
+
+        $this->authorizeRole($request, $company, ['owner']);
+
         if ($company->logo_path) {
             Storage::disk('public')->delete($company->logo_path);
         }

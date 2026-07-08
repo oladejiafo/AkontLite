@@ -51,4 +51,9 @@ class Company extends Model
     {
         return $this->users()->wherePivot('role', 'owner')->first();
     }
+
+    public function subscription()
+    {
+        return $this->hasOne(Subscription::class);
+    }
 }

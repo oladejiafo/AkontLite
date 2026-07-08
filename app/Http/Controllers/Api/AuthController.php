@@ -72,6 +72,15 @@ class AuthController extends Controller
             'country_standard' => 'Other',
         ]);
 
+        $freePlan = \App\Models\Plan::where('slug', 'free')->first();
+
+        if ($freePlan) {
+            $company->subscription()->create([
+                'plan_id' => $freePlan->id,
+                'status' => 'active',
+            ]);
+        }
+
         $company->companyUsers()->create([
             'user_id'     => $user->id,
             'role'        => 'owner',

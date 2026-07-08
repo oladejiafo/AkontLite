@@ -17,6 +17,12 @@ class PaymentController extends Controller
             'provider' => 'required|in:stripe,paystack,flutterwave',
         ]);
 
+        if (!app(\App\Services\PlanGateService::class)->canUsePaymentGateways($request->user())) {
+            return response()->json([
+                'message' => 'Online payment collection is a paid feature. Upgrade to accept card payments.',
+            ], 403);
+        }
+
         $invoice = Invoice::where('id', $invoiceId)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();

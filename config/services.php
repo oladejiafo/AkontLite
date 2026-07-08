@@ -39,6 +39,7 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT'),
     ],
+    
     'openai' => [
         'key' => env('OPENAI_API_KEY'),
     ],
@@ -53,5 +54,5 @@ return [
         'secret' => env('FLUTTERWAVE_SECRET_KEY'),
         'webhook_hash' => env('FLUTTERWAVE_WEBHOOK_HASH'),
     ],
-    
+
 ];
